@@ -34,8 +34,6 @@ On *2025-09-16*, the cloud host **flare** was compromised via an external RDP lo
 
 ## 📌 Capture The Flags — Timeline of Events (UTC)
 
-The table below summarizes the key events identified during the investigation. Individual indicators (Flags) are listed in the Details column and are documented separately in the IoCs section.
-
 | Timestamp (UTC) | Event | Target Device | Details |
 |---|---|---:|---|
 | **2025-09-13 4:39:38**   | Initial RDP password-spray observed | flare | External source noted (Flag 1) |
@@ -67,3 +65,6 @@ The table below summarizes the key events identified during the investigation. I
 | **10** | Exfiltration Attempt Destination (IP:Port)  | 185.92.220.87:8081                                |
 
 
+## 🛠️ Remediation & Hardening Plan
+### Long-Term (1–3 months)
+- Implement MFA on remote access where not already in place and reset credentials for compromised/privileged accounts; rotate administrative secrets.
