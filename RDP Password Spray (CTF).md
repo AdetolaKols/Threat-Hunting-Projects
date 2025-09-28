@@ -5,8 +5,6 @@
 ## Case Summary
 A password spray attack against an internet-exposed RDP endpoint resulted in a successful remote logon On *2025-09-16*. After authenticating, the intruder executed a masqueraded binary, created a scheduled task to establish persistence, and weakened Microsoft Defender by adding a folder exclusion. The actor performed host discovery, locally archived data, and communicated with external infrastructure before attempting to exfiltrate data over HTTP to a nonstandard port. All identifiable indicators (source IPs, account names, file paths, and other IoCs) are documented separately in the **IoCs** section of this report.
 
-On *2025-09-16*, the cloud host **flare** was compromised via an external RDP login from a Public IP using the account **slflare**. Shortly after gaining access, the attacker executed a staged PowerShell payload, dropped a masqueraded binary, and established persistence by creating a scheduled task and adding a Defender exclusion for `C:\Windows\Temp`.  
-
 ## 📏 Parameters
 
 - **Date Completed:** *2025-09-26*
