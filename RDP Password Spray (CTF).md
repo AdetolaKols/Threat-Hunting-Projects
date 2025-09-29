@@ -130,7 +130,7 @@ DeviceLogonEvents
 ```kql (Sentinel)
 DeviceProcessEvents
 | where DeviceName contains "flare"
-| where TimeGenerated between (datetime(2025-09-16 18:40) .. datetime(2025-09-22 20:43)) // expand + 1-6h around success
+| where TimeGenerated between (datetime(2025-09-16 18:40) .. datetime(2025-09-22 20:43))
 | project
     TimeGenerated,
     FileName,
@@ -212,6 +212,128 @@ DeviceRegistryEvents
 **Finding:** New entry under **TaskCache\Tree** reveals a scheduled task named **MicrosoftUpdateSync**, consistent with persistence created minutes after initial access.
 <img width="1604" height="283" alt="image" src="https://github.com/user-attachments/assets/82ca1da8-6b7c-4d04-9693-c1814ad44a09" />
 
+---
+
+### Flag 6: What Defender Setting Was Modified?
+**Objective:** Identify the folder path added to Defender exclusions.  
+**What to Hunt:** Defender exclusion registry updates (Exclusions\Paths).  
+**TTP:** T1562.001 (Impair Defenses: Disable/Modify Defender).  
+**Why It Matters:** Exclusions enable on‑disk payloads to evade scanning.
+
+**KQL Query:**
+***// Defender exclusion registry modifications***
+```kql
+let StartTime = datetime(2025-09-16T19:30:00Z);
+let EndTime = datetime(2025-09-22T23:59:59Z);
+DeviceRegistryEvents
+| where DeviceName contains "flare"
+| where RegistryKey contains "Windows Defender" and (isnotempty(RegistryValueName) or isnotempty(RegistryValueData))
+| project Timestamp, RegistryKey, InitiatingProcessFolderPath, RegistryValueName, RegistryValueData,  InitiatingProcessFileName, InitiatingProcessCommandLine
+| order by Timestamp asc 
+```
+**Output:** `C:\Windows\Temp`  
+**Finding:** A Defender exclusion was added for **C:\Windows\Temp**, a common staging folder for transient payloads and archives.
+<img width="1214" height="294" alt="image" src="https://github.com/user-attachments/assets/eeb40d9e-be76-45db-84a9-74db415a3b50" />
+
+---
+
+### Flag 7: What Discovery Command Did the Attacker Run?
+**Objective:** Identify earliest system discovery command.  
+**What to Hunt:** `whoami` / `systeminfo` invocations following persistence.  
+**TTP:** T1082 (System Information Discovery).  
+**Why It Matters:** Validates reconnaissance phase and attacker context awareness.
+
+**KQL Query:**
+***// Earliest discovery commands***
+```kql (Sentinel)
+DeviceProcessEvents
+| where DeviceName contains "flare"
+| where TimeGenerated between (datetime(2025-09-16 19:30) .. datetime(2025-09-22 20:43))
+| project
+    TimeGenerated,
+    FileName,
+    InitiatingProcessFolderPath,
+    FolderPath,
+    ProcessCommandLine,
+    InitiatingProcessFileName,
+    ProcessVersionInfoFileDescription,
+    AccountName
+| order by TimeGenerated asc
+
+```
+**Output:** `"cmd.exe" /c systeminfo`  
+**Finding:** The attacker initiated host enumeration via **systeminfo** (via `cmd /c`), shortly after establishing persistence.
+<img width="1650" height="247" alt="image" src="https://github.com/user-attachments/assets/4b2d41d2-51e2-433c-8778-9acb870c68a6" />
+
+---
+
+### Flag 8: Archive File Created by Attacker
+**Objective:** Identify the archive created to stage data for exfiltration.  
+**What to Hunt:** `.zip` / `.7z` / `.rar` creation or usage from suspicious locations.  
+**TTP:** T1560.001 (Local Archiving).  
+**Why It Matters:** Confirms data staging prior to outbound transfer.
+
+**KQL Query:**
+***// Archive operations observed in process command lines***
+```kql (Sentinel)
+DeviceFileEvents
+| where DeviceName contains "" "flare"
+| where TimeGenerated between (datetime(2025-09-16 19:30) .. datetime(2025-09-22 20:43))
+| where FileName has_any (".zip",".7z",".rar",".tar",".gz",".bz2",".exe")
+| project TimeGenerated, ActionType, FolderPath, FileName, FileSize, InitiatingProcessFileName, InitiatingProcessCommandLine
+| order by TimeGenerated asc
+```
+**Output:** `backup_sync.zip`  
+**Finding:** The actor staged collected data into **backup_sync.zip**, a benign‑sounding archive name typical of masquerading techniques.
+<img width="1650" height="247" alt="image" src="https://github.com/user-attachments/assets/c85dabe7-3ecb-4705-8344-d3c980020cfc" />
+
+---
+
+### Flag 9: C2 Connection Destination
+**Objective:** Identify the C2 destination contacted for remote access/tooling.  
+**What to Hunt:** Outbound HTTP/S calls immediately following staging/persistence.  
+**TTP:** T1071.001 (Web Protocols), T1105 (Ingress Tool Transfer).  
+**Why It Matters:** Pinpoints external infrastructure used to control the host.
+
+**KQL Query:**
+***// Outbound URLs/IPs tied to archive or tooling retrieval***
+```kql
+let StartTime = datetime(2025-09-16T18:40:57.3785102Z);
+let EndTime   = datetime(2025-09-22T23:59:59Z);
+DeviceProcessEvents
+| where Timestamp between (StartTime .. EndTime)
+| where DeviceName contains "flare"
+| where ProcessCommandLine contains ".zip"
+| project Timestamp, ProcessCommandLine
+| order by Timestamp asc
+```
+**Output:** `185.92.220.87`  
+**Finding:** Process telemetry shows repeated callbacks to **185.92.220.87**, indicating external C2/tooling retrieval.
+<img width="1634" height="294" alt="image" src="https://github.com/user-attachments/assets/61cac56d-76b6-47ac-a56d-e1dcfd4b5f72" />
+
+---
+
+### Flag 10: Exfiltration Attempt Detected
+**Objective:** Identify the exfiltration destination and port.  
+**What to Hunt:** Outbound connections to external IP:port following archive creation.  
+**TTP:** T1048.003 (Exfiltration Over Unencrypted Protocol).  
+**Why It Matters:** Confirms data egress attempt and aids containment/IOCs.
+
+**KQL Query:**
+***// External exfil destination (IP:Port)***
+```kql(MDE)
+et StartTime = datetime(2025-09-16T18:40:57.3785102Z);
+let EndTime   = datetime(2025-09-22T23:59:59Z);
+DeviceProcessEvents
+| where Timestamp between (StartTime .. EndTime)
+| where DeviceName contains "flare"
+| where ProcessCommandLine contains ".zip"
+| project Timestamp, ProcessCommandLine
+| order by Timestamp asc
+```
+**Output:** `185.92.220.87:8081`  
+**Finding:** The staged archive was sent (or attempted) to **185.92.220.87:8081**, aligning with observed C2 infrastructure and unencrypted exfil paths.
+<img width="1162" height="322" alt="image" src="https://github.com/user-attachments/assets/dbc1f7db-e306-47e1-ace8-98f9c707a59d" />
 
 
 
