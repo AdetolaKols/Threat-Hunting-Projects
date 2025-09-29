@@ -65,4 +65,155 @@ A password spray attack against an internet-exposed RDP endpoint resulted in a s
 
 ## 🛠️ Remediation & Hardening Plan
 ### Long-Term (1–3 months)
-- Implement MFA on remote access where not already in place and reset credentials for compromised/privileged accounts; rotate administrative secrets.
+- Mandate MFA for all RDP and remote entry points; keep RDP limited to VPN/PAW with JIT as standard practice.
+- Tighten lockout thresholds; audit failed logons for spray patterns.
+- Implement Privileged Access Management (PAM) and rotate/administer secrets through approved vaulting.
+- Segment networks to constrain lateral movement; restrict management protocols to admin subnets.
+- Expand telemetry: enhance logging for PowerShell, WMI, and process creation; ensure logs are retained and queryable centrally.
+- Establish DNS/HTTP egress filtering with DLP/CASB to control data flows and detect unsanctioned exfiltration paths.
+- Build a proactive threat-hunting program to regularly search for spray patterns, persistence artifacts, and execution bypasses.
+
+### Detection Engineering (Ongoing)
+- Create detections for:
+  - PowerShell `ExecutionPolicy Bypass` and suspicious child processes.
+  - Archive creation in `Temp`/`Public` directories indicative of staging.
+  - Scheduled task creation/modification by non-administrative contexts.
+  - Defender policy changes, including new or altered exclusions.
+- Continuously test and tune rules against real telemetry from the environment.
+
+## 🎓 Lessons Learned 
+
+- Exposing RDP to the internet without MFA continues to pose a significant risk for password-spraying attacks.  
+- Masqueraded binaries placed in public directories can easily appear legitimate; strong naming policies and AMSI/EDR visibility are critical.  
+- Adding exclusions in Defender creates persistent blind spots; all AV policy changes should be closely monitored and controlled.  
+- Task Scheduler remains a common method for persistence; registry-based telemetry (`TaskCache\Tree`) provides strong detection coverage.  
+
+---
+
+## Capture The Flag and Steps Taken 
+
+Stage 1: Initial Access — *The Threat Actor is trying to get into your network.*
+
+### Flag 1: Attacker IP Address
+**Objective:** Identify the earliest external IP that successfully logged in via RDP after multiple failures.  
+**What to Hunt:** First `ActionType == "LogonSuccess"` from a Public `RemoteIP` on “flare” hosts.  
+**TTP:** T1110.001 (Password Guessing) → T1078 (Valid Accounts).  
+**Why It Matters:** Anchors initial access and the source of compromise.
+
+**KQL Query:**
+
+***// Earliest public IP with RDP LogonSuccess on flare hosts***
+```kql (MDE)
+let StartTime = datetime(2025-09-13T00:00:00Z);
+let EndTime   = datetime(2025-09-22T23:59:59Z);
+DeviceLogonEvents
+| where Timestamp between (StartTime .. EndTime)
+| where DeviceName contains "flare"
+| where isnotempty(RemoteIP) and RemoteIPType == "Public"
+| project Timestamp, DeviceName, AccountName, RemoteIP, ActionType, LogonType
+| sort by Timestamp asc
+```
+**Output:** `159.26.106.84`  
+**Finding:** The earliest `LogonSuccess` from a public source was **159.26.106.84**, consistent with password‑spray attempts preceding a successful login.
+<img width="1252" height="722" alt="image" src="https://github.com/user-attachments/assets/633128a9-df3b-4f34-bd32-5b575cbf21b8" />
+
+---
+
+### Flag 2: Compromised Account
+**Objective:** Determine the username used during the successful RDP login.  
+**What to Hunt:** Account tied to Flag 1’s `LogonSuccess` event.  
+**TTP:** T1078 (Valid Accounts).  
+**Why It Matters:** Establishes attacker’s operating identity and permission scope.
+
+**KQL Query:**
+***// First successful RDP login’s account on flare hosts***
+```kql (Sentinel)
+DeviceProcessEvents
+| where DeviceName contains "flare"
+| where TimeGenerated between (datetime(2025-09-16 18:40) .. datetime(2025-09-22 20:43)) // expand + 1-6h around success
+| project
+    TimeGenerated,
+    FileName,
+    InitiatingProcessFolderPath,
+    FolderPath,
+    ProcessCommandLine,
+    InitiatingProcessFileName,
+    ProcessVersionInfoFileDescription,
+    AccountName
+| order by TimeGenerated asc
+```
+**Output:** `slflare`  
+**Finding:** The first successful RDP authentication from an external IP used the account **slflare**.
+<img width="1579" height="784" alt="image" src="https://github.com/user-attachments/assets/70942d7d-3528-4be5-bcb2-cd43a9343139" />
+
+---
+
+### Flag 3: Executed Binary Name
+**Objective:** Identify the binary executed post‑RDP access.  
+**What to Hunt:** Suspicious executions by **slflare** from `Public/Temp/Downloads` locations or with download/bypass flags.  
+**TTP:** T1059.003 (Cmd) / T1204.002 (Malicious File).  
+**Why It Matters:** Reveals the initial payload/tooling executed by the adversary.
+
+**KQL Query:**
+***// Suspicious binary launches under slflare***
+```kql (Sentinel)
+DeviceProcessEvents
+| where DeviceName contains "flare"
+| where TimeGenerated  between (datetime(2025-09-16 19:00) .. datetime(2025-09-22 20:43)) // expand + 1-6h around success
+| project TimeGenerated, FileName, InitiatingProcessFolderPath, FolderPath, ProcessCommandLine, InitiatingProcessFileName, ProcessVersionInfoFileDescription, AccountName
+| order by TimeGenerated asc
+```
+**Output:** `msupdate.exe`  
+**Finding:** Under **slflare**, the process list shows execution of **msupdate.exe**, a legit‑sounding name commonly used to masquerade malicious payloads.
+<img width="1613" height="394" alt="image" src="https://github.com/user-attachments/assets/13a41058-07aa-4cba-97eb-0162ad4ccb56" />
+
+---
+### Flag 4: Command Line Used to Execute the Binary
+**Objective:** Provide the full command line used to launch the binary from Flag 3.  
+**What to Hunt:** `ProcessCommandLine` containing **msupdate.exe**.  
+**TTP:** T1059 (Command and Scripting Interpreter).  
+**Why It Matters:** Parameters expose execution policy bypass and payload pathing.
+
+**KQL Query:**
+***// Full command line for msupdate.exe***
+```kql
+DeviceProcessEvents
+| where DeviceName contains "flare"
+| where TimeGenerated  between (datetime(2025-09-16 19:00) .. datetime(2025-09-22 20:43)) // expand + 1-6h around success
+| where InitiatingProcessCommandLine contains "msupdate.exe"
+| project TimeGenerated, FileName, InitiatingProcessFolderPath, FolderPath, ProcessCommandLine, InitiatingProcessCommandLine, ProcessVersionInfoFileDescription, AccountName
+| order by TimeGenerated asc
+```
+**Output:** `"msupdate.exe" -ExecutionPolicy Bypass -File C:\Users\Public\update_check.ps1`  
+**Finding:** The binary was invoked with **ExecutionPolicy Bypass**, executing `C:\Users\Public\update_check.ps1`, indicating script‑based follow‑on activity.  
+<img width="1610" height="242" alt="image" src="https://github.com/user-attachments/assets/2d818c11-094d-435c-be47-2c7215c8fa5c" />
+
+---
+
+### Flag 5: Persistence Mechanism Created
+**Objective:** Identify the scheduled task created by the attacker.  
+**What to Hunt:** Task creation breadcrumbs (e.g., `TaskCache\Tree\*`) and recent entries tied to attacker activity window.  
+**TTP:** T1053.005 (Scheduled Task).  
+**Why It Matters:** Confirms persistence method that survives reboots/logoff.
+
+**KQL Query:**
+***// Suspicious TaskCache registry entries***
+```kql (MDE)
+let StartTime = datetime(2025-09-16T19:00:00Z);
+let EndTime = datetime(2025-09-22T23:59:59Z);
+DeviceRegistryEvents
+| where DeviceName  contains "flare"
+| where InitiatingProcessAccountName  contains "slflare"
+| where isnotempty( RegistryKey)
+| project Timestamp, RegistryKey, RegistryValueName, RegistryValueData, InitiatingProcessAccountName
+| order by Timestamp asc 
+```
+**Output:** `MicrosoftUpdateSync`  
+**Finding:** New entry under **TaskCache\Tree** reveals a scheduled task named **MicrosoftUpdateSync**, consistent with persistence created minutes after initial access.
+<img width="1604" height="283" alt="image" src="https://github.com/user-attachments/assets/82ca1da8-6b7c-4d04-9693-c1814ad44a09" />
+
+
+
+
+
+
