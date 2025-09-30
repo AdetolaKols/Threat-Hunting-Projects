@@ -1,5 +1,5 @@
 #  Hide Your RDP: Password Spray Leads to Full Compromise (CTF)
-<img width="1362" height="912" alt="image" src="https://github.com/user-attachments/assets/bb01c41d-1334-49df-9b27-379b7c511988" />
+<img width="1024" height="1024" alt="RDP Password Spray" src="https://github.com/user-attachments/assets/6ee41e21-cd83-4a2c-acf9-506ff2dc8ef8" />
 
 
 ## Case Summary
@@ -335,7 +335,7 @@ DeviceProcessEvents
 **Finding:** The staged archive was sent (or attempted) to **185.92.220.87:8081**, aligning with observed C2 infrastructure and unencrypted exfil paths.
 <img width="1162" height="322" alt="image" src="https://github.com/user-attachments/assets/dbc1f7db-e306-47e1-ace8-98f9c707a59d" />
 
-## 🔎 Analyst Workflow  
+## ✍️ Analyst Workflow  
 
 ### From an investigative perspective, the workflow unfolded as follows:  
 
