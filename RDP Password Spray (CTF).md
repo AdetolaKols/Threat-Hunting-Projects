@@ -335,7 +335,16 @@ DeviceProcessEvents
 **Finding:** The staged archive was sent (or attempted) to **185.92.220.87:8081**, aligning with observed C2 infrastructure and unencrypted exfil paths.
 <img width="1162" height="322" alt="image" src="https://github.com/user-attachments/assets/dbc1f7db-e306-47e1-ace8-98f9c707a59d" />
 
+## 🔎 Analyst Workflow  
 
+### From an investigative perspective, the workflow unfolded as follows:  
 
+**Authentication Review** – Examined failed login attempts, confirming a brute-force pattern that eventually led to a successful RDP login from an external source.  
 
+**Process and Execution Analysis** – Inspected process trees and observed a suspicious binary executed post-login, which initiated PowerShell scripts used for payload execution.  
 
+**Persistence and Evasion Assessment** – Verified modifications to Defender settings, including the addition of folder exclusions. Confirmed the attacker created a scheduled task to maintain persistence across system reboots.  
+
+**Reconnaissance and Network Activity** – Reviewed commands used for host discovery and system enumeration. Detected outbound connections to external command-and-control infrastructure.  
+
+**Exfiltration Assessment** – Identified the creation of a local archive used for staging data. Correlated findings with outbound traffic showing an attempted exfiltration to an external IP and port.  
