@@ -100,7 +100,7 @@ Stage 1: Initial Access — *The Threat Actor is trying to get into your network
 **TTP:** T1110.001 (Password Guessing) → T1078 (Valid Accounts).  
 **Why It Matters:** Anchors initial access and the source of compromise.
 
-**KQL Query:**
+**KQL Query (MDE):**
 
 ***// Earliest public IP with RDP LogonSuccess on flare hosts***
 ```kql (MDE)
@@ -125,7 +125,7 @@ DeviceLogonEvents
 **TTP:** T1078 (Valid Accounts).  
 **Why It Matters:** Establishes attacker’s operating identity and permission scope.
 
-**KQL Query:**
+**KQL Query (Sentinel):**
 ***// First successful RDP login’s account on flare hosts***
 ```kql (Sentinel)
 DeviceProcessEvents
@@ -154,7 +154,7 @@ DeviceProcessEvents
 **TTP:** T1059.003 (Cmd) / T1204.002 (Malicious File).  
 **Why It Matters:** Reveals the initial payload/tooling executed by the adversary.
 
-**KQL Query:**
+**KQL Query (Sentinel):**
 ***// Suspicious binary launches under slflare***
 ```kql (Sentinel)
 DeviceProcessEvents
@@ -174,7 +174,7 @@ DeviceProcessEvents
 **TTP:** T1059 (Command and Scripting Interpreter).  
 **Why It Matters:** Parameters expose execution policy bypass and payload pathing.
 
-**KQL Query:**
+**KQL Query (Sentinel):**
 ***// Full command line for msupdate.exe***
 ```kql
 DeviceProcessEvents
@@ -196,9 +196,9 @@ DeviceProcessEvents
 **TTP:** T1053.005 (Scheduled Task).  
 **Why It Matters:** Confirms persistence method that survives reboots/logoff.
 
-**KQL Query:**
+**KQL Query (MDE):**
 ***// Suspicious TaskCache registry entries***
-```kql (MDE)
+```kql
 let StartTime = datetime(2025-09-16T19:00:00Z);
 let EndTime = datetime(2025-09-22T23:59:59Z);
 DeviceRegistryEvents
@@ -220,7 +220,7 @@ DeviceRegistryEvents
 **TTP:** T1562.001 (Impair Defenses: Disable/Modify Defender).  
 **Why It Matters:** Exclusions enable on‑disk payloads to evade scanning.
 
-**KQL Query:**
+**KQL Query (MDE):**
 ***// Defender exclusion registry modifications***
 ```kql
 let StartTime = datetime(2025-09-16T19:30:00Z);
@@ -273,7 +273,7 @@ DeviceProcessEvents
 **TTP:** T1560.001 (Local Archiving).  
 **Why It Matters:** Confirms data staging prior to outbound transfer.
 
-**KQL Query:**
+**KQL Query (Sentinel):**
 ***// Archive operations observed in process command lines***
 ```kql (Sentinel)
 DeviceFileEvents
@@ -295,7 +295,7 @@ DeviceFileEvents
 **TTP:** T1071.001 (Web Protocols), T1105 (Ingress Tool Transfer).  
 **Why It Matters:** Pinpoints external infrastructure used to control the host.
 
-**KQL Query:**
+**KQL Query (MDE):**
 ***// Outbound URLs/IPs tied to archive or tooling retrieval***
 ```kql
 let StartTime = datetime(2025-09-16T18:40:57.3785102Z);
@@ -319,7 +319,7 @@ DeviceProcessEvents
 **TTP:** T1048.003 (Exfiltration Over Unencrypted Protocol).  
 **Why It Matters:** Confirms data egress attempt and aids containment/IOCs.
 
-**KQL Query:**
+**KQL Query (MDE):**
 ***// External exfil destination (IP:Port)***
 ```kql(MDE)
 et StartTime = datetime(2025-09-16T18:40:57.3785102Z);
