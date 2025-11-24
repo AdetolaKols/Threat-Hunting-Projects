@@ -33,20 +33,28 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 - **Frameworks Applied:** *MITRE ATT&CK*, *NIST 800-61*
 - **Objective:** Identify initial access, reconnaissance activity, defense evasion, credential dumping, persistence mechanisms, lateral movement attempts, and data exfiltration.
 
-
 📌 Timeline of Events (UTC)
 
-| Time (UTC)            | Activity Category       | Key Event Details                                                                                  | MITRE Technique(s)                    |
-|-----------------------|--------------------------|------------------------------------------------------------------------------------------------------|----------------------------------------|
-| **Nov 19, 2025 6:36:21 PM**           | Initial Access           | RDP login to `azuki-sl` using compromised account `kenji.sato`                                      | T1021.001, T1078                       |
-| **Nov 19, 2025 7:04:01 PM**      | Reconnaissance           | PowerShell execution; network discovery using `arp -a`, `ipconfig /all`                             | T1059.001, T1016                       |
-| **Nov 19, 2025 7:05:33 PM**    | Defense Evasion          | Defender exclusions added (`.bat`, `.ps1`, `.exe`); Temp folders excluded; hidden staging folder created | T1562.001, T1074                   |
-| **Nov 19, 2025 6:49:33 PM**    | Defense Evasion          | Temporary Folder Exclusion (`.bat`, `.ps1`, `.exe`); Temp folders excluded; hidden staging folder created | T1562.001, T1074                   |
-| **6:49–6:50 PM**      | Malicious Script         | Execution of attacker script `wupdate.ps1` in Temp                                                   | T1059.001                              |
-| **7:03–7:06 PM**      | Tool Download            | `certutil.exe` downloads `svchost.exe` and `AdobeGC.exe` into WindowsCache                           | T1105                                  |
-| **7:07–7:08 PM**      | Persistence              | Scheduled task created: “Windows Update Check” → runs attacker payload                               | T1053.005                              |
-| **7:08 PM**           | Credential Access        | `mm.exe` (renamed Mimikatz) dumps LSASS using `sekurlsa::logonpasswords`                             | T1003.001                              |
-| **7:09 PM**           | Exfiltration             | Data archive uploaded via Discord webhook using `curl.exe`                                           | T1567.002                              |
-| **7:09–7:10 PM**      | Persistence Account      | Admin account `support` created and added to Administrators group                                     | T1136.001                              |
-| **7:10 PM**           | Lateral Movement         | `cmdkey.exe` sets credentials for 10.1.0.188; RDP attempt via `mstsc.exe`                            | T1550.002, T1021.001                   |
-| **7:11 PM**           | Anti-Forensics           | Security event log cleared with `wevtutil.exe cl Security`                                           | T1070.001                              |
+| Time (UTC) | Flag | Category / Stage           | Key Event Details                                                                                      | MITRE Technique(s)                    |
+|-----------|------|-----------------------------|----------------------------------------------------------------------------------------------------------|----------------------------------------|
+|  **Nov 19, 2025 6:36:21 PM**    | 1    | Initial Access              | RDP login to `azuki-sl` using compromised account `kenji.sato`                                          | T1021.001, T1078                       |
+| **Nov 19, 2025 6:36:21 PM**  | 2    | Initial Access              | Valid account leveraged to gain interactive access                                                       | T1078                                  |
+|  **Nov 19, 2025 7:04:01 PM** | 3    | Execution                   | Recon commands executed (`arp -a`, `ipconfig /all`)                                                      | T1059.003, T1016                       |
+| **Nov 19, 2025 6:49:21 PM**   | 4    | Execution                   | PowerShell execution from Downloads / Temp directories                                                   | T1059.001                              |
+| **Nov 19, 2025 6:49:21 PM**  | 5    | Persistence                 | Scheduled task created for long-term persistence                                                         | T1053.005                              |
+|  **Nov 19, 2025 6:49:21 PM**    | 6    | Defense Evasion             | Temp folder excluded from Defender scanning: `C:\Users\KENJI~1.SAT\AppData\Local\Temp`                   | T1562.001                              |
+| **Nov 19, 2025 7:06:58 PM**   | 7    | Defense Evasion             | `certutil.exe` abused to download malicious tools                                                        | T1105                                  |
+| **Nov 19, 2025 7:07:46 PM**   | 8    | Persistence                 | Scheduled task name created:  “Windows Update Check” → runs attacker payload                                                      | T1053.005                              |
+| **Nov 19, 2025 7:07:46 PM**   | 9    | Persistence                 | Scheduled task executes malicious payload: `C:\ProgramData\WindowsCache\svchost.exe`                     | T1053.005                              |
+| **Nov 19, 2025 7:06:58 PM**    | 10   | Command & Control           | Outbound connection to C2 server: **78.141.196.6**                                                       | T1071.001, T1105                       |
+| **Nov 19, 2025 7:11:04 PM**   | 11   | Command & Control           | C2 communications over port **443**                                                                     | T1071.001                              |
+| **Nov 19, 2025 7:07:22 PM**   | 12   | Credential Access           | Credential dumping tool identified: `mm.exe`                                                            | T1003.001                              |
+| **Nov 19, 2025 7:08:22 PM**   | 13   | Credential Access           | Mimikatz module used: `sekurlsa::logonpasswords`                                                        | T1003.001                              |
+| **Nov 19, 2025 7:08:58 PM**   | 14   | Collection                  | Data compressed into archive: `export-data.zip`                                                        | T1560.001                              |
+| **Nov 19, 2025 7:09:58 PM**   | 15   | Exfiltration                | Data exfiltrated via HTTPS Discord webhook (`curl.exe`)                                                 | T1567.002                              |
+| **Nov 19, 2025 7:11:39 PM**   | 16   | Anti-Forensics              | Security event log cleared via `wevtutil.exe cl Security`                                               | T1070.001                              |
+| **Nov 19, 2025 7:11:39 PM**  | 17   | Persistence                 | Hidden administrator account created: `support`                                                       | T1136.001                              |
+| **Nov 19, 2025 6:49:48 PM**   | 18   | Execution                   | Malicious PowerShell automation script executed: `wupdate.ps1`                                        | T1059.001                              |
+| **Nov 19, 2025 7:10:39 PM**    | 19   | Lateral Movement            | Attacker targets RDP host **10.1.0.188** using stored credentials                                       | T1550.002, T1021.001                   |
+| **Nov 19, 2025 7:10:39 PM**   | 20   | Lateral Movement            | Built-in RDP client (`mstsc.exe`) used for pivot attempt                                                 | T1021.001                              |
+
