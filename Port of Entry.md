@@ -58,3 +58,64 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 | **Nov 19, 2025 7:10:39 PM**    | 19   | Lateral Movement            | Attacker targets RDP host **10.1.0.188** using stored credentials                                       | T1550.002, T1021.001                   |
 | **Nov 19, 2025 7:10:39 PM**   | 20   | Lateral Movement            | Built-in RDP client (`mstsc.exe`) used for pivot attempt                                                 | T1021.001                              |
 
+## 🔧 Remediation & Hardening Plan
+
+### **Long-Term (1–3 Months)**
+
+- Remove public RDP exposure; enforce MFA and protected admin access.
+- Move admin activities onto Privileged Access Workstations (PAWs).
+- Begin transition to password-less or FIDO2 for privileged users.
+- Enable LSASS protection, Credential Guard, and strict Defender Tamper Protection.
+- Apply network segmentation for admin hosts and sensitive systems.
+- Deploy full EDR telemetry: PowerShell, AMSI, script block logging.
+- Implement egress filtering to block Discord, Pastebin, file-sharing platforms.
+- Centralize logs in a tamper-proof SIEM with long-term retention.
+- Apply least-privilege access for sensitive data and restrict ZIP/archiving in ProgramData/Temp.
+- Roll out security awareness for admins on script abuse, LOLBins, and suspicious RDP use.
+
+---
+
+### **Detection Engineering (Ongoing)**
+
+- Detect misuse of LOLBins (certutil, curl, cmdkey, schtasks).
+- Alert on Defender exclusion changes (file, folder, process).
+- Monitor for PowerShell with `-ExecutionPolicy Bypass` and unsigned script execution.
+- Detect creation of hidden ProgramData folders and Temp-based execution.
+- Flag ZIP/archiving events in non-standard directories.
+- Monitor for new local admin accounts, scheduled tasks, or privilege changes.
+- Alert on outbound HTTPS uploads to non-business services.
+- Watch for attempts to clear logs (e.g., `wevtutil cl Security`).
+- Continuously refine detection rules based on hunting observations.
+- Perform regular red/purple-team exercises to test resilience.
+
+---
+
+## 💡 Lessons Learned
+
+- RDP without MFA exposes organizations to high-risk credential compromise.
+- LOLBins and renamed binaries make detection harder; deep telemetry is essential.
+- Defender exclusions can quietly weaken protection for months if not monitored.
+- Scheduled tasks and local accounts remain high-value persistence vectors.
+- Strong logging, segmentation, and privileged identity controls reduce long-term risk.
+
+## Starting Point – Initial Access
+
+**Objective:**
+Determine the origin  and source IP address of the Remote Desktop Protocol connection
+
+- **KQL Query Used:**
+```
+DeviceLogonEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-22))
+| where DeviceName == "azuki-sl"
+| where ActionType in ("LogonSuccess", "LogonFailed")
+| where isnotempty(RemoteIP)
+| where RemoteIP !in ("127.0.0.1", "::1", "-")
+| where not(ipv4_is_private(RemoteIP))
+| project Timestamp, DeviceName, AccountName, LogonType, ActionType, RemoteIP
+| order by Timestamp asc
+```
+<img width="1107" height="507" alt="image" src="https://github.com/user-attachments/assets/c7a813e7-23a3-4ed1-a2ea-a2a74ebdca6c" />
+
+
+
