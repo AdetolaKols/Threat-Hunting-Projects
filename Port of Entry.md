@@ -117,5 +117,3 @@ DeviceLogonEvents
 ```
 <img width="1107" height="507" alt="image" src="https://github.com/user-attachments/assets/c7a813e7-23a3-4ed1-a2ea-a2a74ebdca6c" />
 
-
-
