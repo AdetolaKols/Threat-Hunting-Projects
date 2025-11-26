@@ -121,7 +121,9 @@ DeviceLogonEvents
 
 **Objective:**
 Identify which credentials were compromised and determine the scope of unauthorised access.
-**Hypothesis** - Attackers often enumerate network topology to identify lateral movement opportunities and high-value targets.
+
+**Hypothesis** - Attackers often enumerate network topology to identify lateral movement opportunities and high-value target.
+
 
 - **KQL Query Used:**
 ```
@@ -159,10 +161,27 @@ DeviceProcessEvents
 - **Evidence Collected:** `"ARP.EXE" -a` in CLI
 - **Final Finding:** `-Arp.exe` is used to check IP addresses of devices the system recently communicated with
 
-## Discovery - Network Reconnaissance
+## Defense Evasion - Malware Staging Directory
 
 **Objective:**
-Determine the method used for lateral movement, command and argument used to enumerate network neighbours
+Determine the PRIMARY staging directory where malware was stored
+
+**Hypothesis** - Attackers establish staging locations to organise tools and stolen data. Identifying these directories reveals the scope of compromise and helps locate additional malicious artefacts.
+
+- **KQL Query Used:**
+```
+DeviceProcessEvents
+| where DeviceName == "azuki-sl"
+| where AccountName contains "kenji.sato"
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-19))
+| project Timestamp, FileName, ProcessCommandLine, InitiatingProcessAccountName, FolderPath
+| order by Timestamp asc
+```
+<img width="1827" height="443" alt="flag 4" src="https://github.com/user-attachments/assets/74ab11cd-2c7a-49a1-a185-443e7baab397" />
+
+- **Evidence Collected:** `C:\ProgramData\WindowsCache` in CLI
+- **Final Finding:** `-Arp.exe` the attacker: Created/used C:\ProgramData\WindowsCache; Hid it, Stored tools and stolen data inside it, Zipped and exfiltrated data from this exact directory
+
 
 
 
