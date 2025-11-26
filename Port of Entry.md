@@ -117,3 +117,42 @@ DeviceLogonEvents
 ```
 <img width="1107" height="507" alt="image" src="https://github.com/user-attachments/assets/c7a813e7-23a3-4ed1-a2ea-a2a74ebdca6c" />
 
+## Initial Access - Compromised User Account
+
+**Objective:**
+Identify which credentials were compromised and determine the scope of unauthorised access 
+
+- **KQL Query Used:**
+```
+DeviceLogonEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-22))
+| where DeviceName == "azuki-sl"
+| where ActionType in ("LogonSuccess", "LogonFailed")
+| where isnotempty(RemoteIP)
+| where RemoteIP !in ("127.0.0.1", "::1", "-")
+| where not(ipv4_is_private(RemoteIP))
+| project Timestamp, DeviceName, AccountName, LogonType, ActionType, RemoteIP
+| order by Timestamp asc
+```
+<img width="1262" height="375" alt="flag 2" src="https://github.com/user-attachments/assets/1d5311b9-553f-493f-8262-06ae650466ef" />
+
+## Discovery - Network Reconnaissance
+
+**Objective:**
+Determine the method used for lateral movement, command and argument used to enumerate network neighbours
+
+- **KQL Query Used:**
+```
+DeviceProcessEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-22))
+| where DeviceName == "azuki-sl"
+| where AccountName contains "kenji.sato"
+| where ProcessCommandLine has_any ("arp", "getmac", "ipconfig", "netsh", "route print")
+| where FileName in~ ("cmd.exe", "powershell.exe", "arp.exe", "getmac.exe", "ipconfig.exe", "netsh.exe")
+| project Timestamp, FileName, ProcessCommandLine, InitiatingProcessAccountName
+| order by Timestamp asc
+```
+
+
+
+
