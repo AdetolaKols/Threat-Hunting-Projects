@@ -180,7 +180,7 @@ DeviceProcessEvents
 <img width="1827" height="443" alt="flag 4" src="https://github.com/user-attachments/assets/74ab11cd-2c7a-49a1-a185-443e7baab397" />
 
 - **Evidence Collected:** `C:\ProgramData\WindowsCache` in CLI
-- **Final Finding:** `-Arp.exe` the attacker: Created/used C:\ProgramData\WindowsCache; Hid it, Stored tools and stolen data inside it, Zipped and exfiltrated data from this exact directory
+- **Final Finding:** -  The attacker created/used `C:\ProgramData\WindowsCache`; hid it, stored tools and stolen data inside it then zipped and exfiltrated data from this exact directory
 
 
 
