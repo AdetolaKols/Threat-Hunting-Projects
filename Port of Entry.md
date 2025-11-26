@@ -120,7 +120,8 @@ DeviceLogonEvents
 ## Initial Access - Compromised User Account
 
 **Objective:**
-Identify which credentials were compromised and determine the scope of unauthorised access 
+Identify which credentials were compromised and determine the scope of unauthorised access.
+**Hypothesis** - Attackers often enumerate network topology to identify lateral movement opportunities and high-value targets.
 
 - **KQL Query Used:**
 ```
@@ -139,7 +140,8 @@ DeviceLogonEvents
 ## Discovery - Network Reconnaissance
 
 **Objective:**
-Determine the method used for lateral movement, command and argument used to enumerate network neighbours
+Determine the command and argument used to enumerate network neighbours
+**Hypothesis** - Attackers often enumerate network topology to identify lateral movement opportunities and high-value targets.
 
 - **KQL Query Used:**
 ```
@@ -152,6 +154,15 @@ DeviceProcessEvents
 | project Timestamp, FileName, ProcessCommandLine, InitiatingProcessAccountName
 | order by Timestamp asc
 ```
+<img width="1082" height="136" alt="flag 3" src="https://github.com/user-attachments/assets/a4566c62-bc70-4125-b56e-fe6a271fb7a6" />
+
+- **Evidence Collected:** `"ARP.EXE" -a` in CLI
+- **Final Finding:** `-Arp.exe` is used to check IP addresses of devices the system recently communicated with
+
+## Discovery - Network Reconnaissance
+
+**Objective:**
+Determine the method used for lateral movement, command and argument used to enumerate network neighbours
 
 
 
