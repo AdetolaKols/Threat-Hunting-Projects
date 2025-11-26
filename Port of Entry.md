@@ -1,4 +1,4 @@
-#  Port of Entry - VM Compromise (CTF)
+#  Port of Entry - VM Compromise 
 <img width="740" height="1110" alt="image" src="https://github.com/user-attachments/assets/175e509e-a948-4788-8507-5e7c0d30ce74" />
 
 ## Executive Summary
