@@ -98,7 +98,7 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 - Scheduled tasks and local accounts remain high-value persistence vectors.
 - Strong logging, segmentation, and privileged identity controls reduce long-term risk.
 
-## Starting Point – Initial Access
+## Flag 1 - Starting Point – Initial Access
 
 **Objective:**
 Determine the origin  and source IP address of the Remote Desktop Protocol connection
@@ -117,7 +117,7 @@ DeviceLogonEvents
 ```
 <img width="1107" height="507" alt="image" src="https://github.com/user-attachments/assets/c7a813e7-23a3-4ed1-a2ea-a2a74ebdca6c" />
 
-## Initial Access - Compromised User Account
+## Flag 2 - Compromised User Account
 
 **Objective:**
 Identify which credentials were compromised and determine the scope of unauthorised access.
@@ -139,7 +139,7 @@ DeviceLogonEvents
 ```
 <img width="1262" height="375" alt="flag 2" src="https://github.com/user-attachments/assets/1d5311b9-553f-493f-8262-06ae650466ef" />
 
-## Discovery - Network Reconnaissance
+## Flag 3 - Network Reconnaissance
 
 **Objective:**
 Determine the command and argument used to enumerate network neighbours
@@ -161,7 +161,7 @@ DeviceProcessEvents
 - **Evidence Collected:** `"ARP.EXE" -a` in CLI
 - **Final Finding:** `-Arp.exe` is used to check IP addresses of devices the system recently communicated with
 
-## Defense Evasion - Malware Staging Directory
+## Flag 4 - Malware Staging Directory
 
 **Objective:**
 Determine the PRIMARY staging directory where malware was stored
@@ -182,7 +182,7 @@ DeviceProcessEvents
 - **Evidence Collected:** `C:\ProgramData\WindowsCache` in CLI
 - **Final Finding:** -  The attacker created/used `C:\ProgramData\WindowsCache`; hid it, stored tools and stolen data inside it then zipped and exfiltrated data from this exact directory
 
-## Defense Evasion - File Extension Exclusions
+## Flag 5 - File Extension Exclusions
 
 **Objective:**
 Identify how many file extensions were excluded from Windows Defender
@@ -198,15 +198,53 @@ DeviceRegistryEvents
 | project Timestamp, RegistryKey, RegistryValueName, RegistryValueData, ActionType
 | order by Timestamp asc
 ```
-<img width="1845" height="462" alt="Flag 6" src="https://github.com/user-attachments/assets/d47ac32a-ceb6-4474-ad02-322015db9401" />
+<img width="1227" height="245" alt="flag 5" src="https://github.com/user-attachments/assets/edc476fa-d678-49f8-8e53-24d64e3fd591" />
 
-- **Evidence Collected:** 3 File extenseions exclusions were added `.bat; .psi; .exe` 
-- **Final Finding:** -  The attacker intends to use these later,  These exclusions set the stage for the next phases to deploy more toolinng into `C:\ProgramData\WindowsCache`; run credential dumping , file collection and lateral movement scripts freely.
-Execute exfil binaries without Defender interference.
+- **Evidence Collected:** 3 file extenseion exclusions were added `.bat; .psi; .exe` 
+- **Final Finding:** -  The attacker intends to use these later,  These exclusions set the stage for the next phases to deploy more toolinng into `C:\ProgramData\WindowsCache`; run credential dumping, file collection and lateral movement scripts freely.
+Execute exfiltration binaries without Defender interference.
+
+                                                                                                      
+## Flag 6 - Temporary Folder Exclusion
+
+**Objective:**
+Determine the temporary folder path was excluded from Windows Defender scanning
+
+**Hypothesis** - Attackers add folder path exclusions to Windows Defender to prevent scanning of directories used for downloading and executing malicious tools.
+
+- **KQL Query Used:**
+```
+DeviceRegistryEvents
+| where DeviceName == "azuki-sl"
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-21))
+| project Timestamp, RegistryKey, RegistryValueName, RegistryValueData, ActionType, InitiatingProcessFolderPath
+| order by Timestamp asc
+```
+<img width="1845" height="462" alt="Flag 6" src="https://github.com/user-attachments/assets/40b602c3-9bda-4d0a-8e46-4ef7c041435b" />
 
 
+- **Evidence Collected:** : `C:\Users\KENJI~1.SAT\AppData\Local\Temp` 
+- **Final Finding:** -  Temp folder excluded from Defender scanning
 
+## Flag 8 - Scheduled Task Name
 
+**Objective:**
+Identify the Windows-native binary the attacker abused to download files
+
+**Hypothesis**  Scheduled tasks provide reliable persistence across system reboots, blends in with legitimate Windows maintenanace routines and it keep control even if the initial access is removed
+
+- **KQL Query Used:**
+```
+DeviceProcessEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where AccountName contains "kenji.sato"
+| project Timestamp, ProcessCommandLine, ActionType, AccountName, FileName
+```
+<img width="1508" height="466" alt="Flag 8" src="https://github.com/user-attachments/assets/ace7b5b6-5745-4e35-a6d8-3bfc151e8d1a" />
+
+- **Evidence Collected:**  `Windows Update Check` 
+- **Final Finding:** Persistence established via scheduled task 
 
 
 
