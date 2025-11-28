@@ -41,9 +41,9 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 | **Nov 19, 2025 6:36:21 PM**  | 2    | Initial Access              | Valid account leveraged to gain interactive access                                                       | T1078                                  |
 |  **Nov 19, 2025 7:04:01 PM** | 3    | Execution                   | Recon commands executed (`arp -a`, `ipconfig /all`)                                                      | T1059.003, T1016                       |
 | **Nov 19, 2025 6:49:21 PM**   | 4    | Execution                   | PowerShell execution from Downloads / Temp directories                                                   | T1059.001                              |
-| **Nov 19, 2025 6:49:21 PM**  | 5    | Persistence                 | Scheduled task created for long-term persistence                                                         | T1053.005                              |
-|  **Nov 19, 2025 6:49:21 PM**    | 6    | Defense Evasion             | Temp folder excluded from Defender scanning: `C:\Users\KENJI~1.SAT\AppData\Local\Temp`                   | T1562.001                              |
-| **Nov 19, 2025 7:06:58 PM**   | 7    | Defense Evasion             | `certutil.exe` abused to download malicious tools                                                        | T1105                                  |
+| **Nov 19, 2025 6:49:21 PM**  | 5    | Persistence                 | Scheduled task created for long-term persistence                                                         | T1564, TA0005                              |
+|  **Nov 19, 2025 6:49:21 PM**    | 6    | Defense Evasion             | Temp folder excluded from Defender scanning: `C:\Users\KENJI~1.SAT\AppData\Local\Temp`                   | T1562.001 T1564                             |
+| **Nov 19, 2025 7:06:58 PM**   | 7    | Defense Evasion             | `certutil.exe` abused to download malicious tools                                                        | T1105                                 |
 | **Nov 19, 2025 7:07:46 PM**   | 8    | Persistence                 | Scheduled task name created:  “Windows Update Check” → runs attacker payload                                                      | T1053.005                              |
 | **Nov 19, 2025 7:07:46 PM**   | 9    | Persistence                 | Scheduled task executes malicious payload: `C:\ProgramData\WindowsCache\svchost.exe`                     | T1053.005                              |
 | **Nov 19, 2025 7:06:58 PM**    | 10   | Command & Control           | Outbound connection to C2 server: **78.141.196.6**                                                       | T1071.001, T1105                       |
@@ -181,6 +181,30 @@ DeviceProcessEvents
 
 - **Evidence Collected:** `C:\ProgramData\WindowsCache` in CLI
 - **Final Finding:** -  The attacker created/used `C:\ProgramData\WindowsCache`; hid it, stored tools and stolen data inside it then zipped and exfiltrated data from this exact directory
+
+## Defense Evasion - File Extension Exclusions
+
+**Objective:**
+Identify how many file extensions were excluded from Windows Defender
+
+**Hypothesis** - Attackers add file extension exclusions to Windows Defender to prevent scanning of malicious files. By excluding them, the attacker can drop new malware without Defender noticing 
+
+- **KQL Query Used:**
+```
+DeviceRegistryEvents
+| where DeviceName == "azuki-sl"
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-21))
+| where RegistryKey has @"Windows Defender\Exclusions\Extensions"
+| project Timestamp, RegistryKey, RegistryValueName, RegistryValueData, ActionType
+| order by Timestamp asc
+```
+<img width="1845" height="462" alt="Flag 6" src="https://github.com/user-attachments/assets/d47ac32a-ceb6-4474-ad02-322015db9401" />
+
+- **Evidence Collected:** 3 File extenseions exclusions were added `.bat; .psi; .exe` 
+- **Final Finding:** -  The attacker intends to use these later,  These exclusions set the stage for the next phases to deploy more toolinng into `C:\ProgramData\WindowsCache`; run credential dumping , file collection and lateral movement scripts freely.
+Execute exfil binaries without Defender interference.
+
+
 
 
 
