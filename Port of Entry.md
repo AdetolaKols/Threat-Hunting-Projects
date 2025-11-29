@@ -246,5 +246,25 @@ DeviceProcessEvents
 - **Evidence Collected:**  `Windows Update Check` 
 - **Final Finding:** Persistence established via scheduled task 
 
+## Flag 9 - Scheduled Task Target
+
+**Objective:**
+Identify the executable path configured in the scheduled task
+
+**Hypothesis** The scheduled task action defines what executes at runtime; this reveals the exact persistence mechanism and the malware location
+
+- **KQL Query Used:**
+```
+DeviceProcessEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where AccountName contains "kenji.sato"
+| project Timestamp, ProcessCommandLine, ActionType, AccountName, FileName
+```
+<img width="1508" height="466" alt="Flag 8" src="https://github.com/user-attachments/assets/ace7b5b6-5745-4e35-a6d8-3bfc151e8d1a" />
+
+- **Evidence Collected:**  `C:\ProgramData\WindowsCache\svchost.exe` 
+- **Final Finding:** Task configured to execute malicious file
+
 
 
