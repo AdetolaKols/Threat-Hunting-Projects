@@ -266,5 +266,65 @@ DeviceProcessEvents
 - **Evidence Collected:**  `C:\ProgramData\WindowsCache\svchost.exe` 
 - **Final Finding:** Task configured to execute malicious file
 
+## Flag 10 - C2 Server Address
 
+**Objective:**
+Determine the IP address of the command and control server
+
+**Hypothesis** Attackers often use  external command-and-control infrastructure to remotely manage the compromised host. If we identify the C2 server involved, we can block its traffic and trace the attacker’s wider infrastructure.
+- **KQL Query Used:**
+```
+DeviceNetworkEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where InitiatingProcessAccountName contains "kenji.sato"
+| project Timestamp, RemoteIP, RemoteUrl, RemotePort, RemoteIPType, InitiatingProcessFileName, InitiatingProcessCommandLine
+```
+<img width="1555" height="667" alt="image" src="https://github.com/user-attachments/assets/ef6af943-a4dc-4334-8989-18dfb2b88617" />
+
+- **Evidence Collected:**  `78.141.196.6` 
+- **Final Finding:** Outbound C2 connection made
+
+## Flag 11 -  C2 Communication Port
+
+**Objective:**
+Determine the destination port used for command and control communications
+
+**Hypothesis** C2 communication ports can indicate the framework or protocol used. This information supports network detection rules and threat intelligence correlation
+
+- **KQL Query Used:**
+```
+DeviceNetworkEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where InitiatingProcessAccountName contains "kenji.sato"
+| project Timestamp, RemoteIP, RemoteUrl, RemotePort, RemoteIPType, InitiatingProcessFileName, InitiatingProcessCommandLine
+```
+<img width="1555" height="667" alt="image" src="https://github.com/user-attachments/assets/d3b8ae05-8ce2-48ee-84db-c1711b46e9fd" />
+
+- **Evidence Collected:**  `443` 
+- **Final Finding:** C2 traffic sent over port 443
+-  web traffic to avoid detection/network filtering by blending in with existing traffic.
+
+
+## Flag 12 -  Credential Theft Tool
+
+**Objective:**
+Identify the filename of the credential dumping tool
+
+**Hypothesis** Credential dumping tools extract authentication secrets from system memory. These tools are typically renamed to avoid signature-based detection.
+
+- **KQL Query Used:**
+```
+DeviceFileEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where InitiatingProcessAccountName contains "kenji.sato"
+| project Timestamp, FileName, FolderPath, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessFolderPath
+```
+<img width="1656" height="692" alt="image" src="https://github.com/user-attachments/assets/4441caea-5ba3-4b00-85b9-d550c9caf066" />
+
+
+- **Evidence Collected:**  `mm.exe` 
+- **Final Finding:** The attacker downloaded a renamed credential dumper into the staging directory. It executed commands consistent with Mimikatz usage.
 
