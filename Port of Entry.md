@@ -324,7 +324,25 @@ DeviceFileEvents
 ```
 <img width="1656" height="692" alt="image" src="https://github.com/user-attachments/assets/4441caea-5ba3-4b00-85b9-d550c9caf066" />
 
-
 - **Evidence Collected:**  `mm.exe` 
 - **Final Finding:** The attacker downloaded a renamed credential dumper into the staging directory. It executed commands consistent with Mimikatz usage.
 
+## Flag 13 -  Credential Access; Memory Extraction Module
+
+**Objective:**
+Identify tthe module used to extract logon passwords from memory
+
+**Hypothesis** Credential dumping tools use specific modules to extract passwords from security subsystems. Documenting the exact technique used aids in detection engineering.
+
+- **KQL Query Used:**
+```
+DeviceProcessEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where AccountName contains "kenji.sato"
+| project Timestamp, ProcessCommandLine, ActionType, AccountName, FileName
+```
+<img width="1656" height="692" alt="image" src="https://github.com/user-attachments/assets/4441caea-5ba3-4b00-85b9-d550c9caf066" />
+
+- **Evidence Collected:**  `sekurlsa::logonpasswords` 
+- **Final Finding:** OS Credential Dumping: LSASS MemorySub-technique rationale:sekurlsa module interacts with Security Support Provider (SSP) data inside LSASS.logonpasswords extracts plaintext credentials, NTLM hashes, Kerberos keys.
