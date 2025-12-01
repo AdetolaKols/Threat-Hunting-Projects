@@ -197,7 +197,7 @@ DeviceRegistryEvents
 ```
 <img width="1227" height="245" alt="flag 5" src="https://github.com/user-attachments/assets/edc476fa-d678-49f8-8e53-24d64e3fd591" />
 
-- **Evidence Collected:** 3 file extenseion exclusions were added `.bat; .psi; .exe` 
+- **Evidence Collected:** 3 file extension exclusions were added `.bat; .psi; .exe` 
 - **Final Finding:** -  The attacker intends to use these later,  These exclusions set the stage for the next phases to deploy more toolinng into `C:\ProgramData\WindowsCache`; run credential dumping, file collection and lateral movement scripts freely.
 Execute exfiltration binaries without Defender interference.
 
@@ -220,7 +220,7 @@ DeviceRegistryEvents
 <img width="1845" height="462" alt="Flag 6" src="https://github.com/user-attachments/assets/40b602c3-9bda-4d0a-8e46-4ef7c041435b" />
 
 - **Evidence Collected:** : `C:\Users\KENJI~1.SAT\AppData\Local\Temp` 
-- **Final Finding:** - Temp folder excluded from Defender scanning
+- **Final Finding:** - Temp folder was excluded from Defender scanning
 
 ## Flag 7 - Temporary Folder Exclusion
 
@@ -324,7 +324,7 @@ DeviceNetworkEvents
 -  web traffic to avoid detection/network filtering by blending in with existing traffic.
 
 
-## Flag 12 -  Credential Theft Tool
+## Flag 12 - Credential Theft Tool
 
 **Objective:**
 Identify the filename of the credential dumping tool
@@ -344,7 +344,7 @@ DeviceFileEvents
 - **Evidence Collected:**  `mm.exe` 
 - **Final Finding:** The attacker downloaded a renamed credential dumper into the staging directory. It executed commands consistent with Mimikatz usage.
 
-## Flag 13 -  Credential Access; Memory Extraction Module
+## Flag 13 - Credential Access; Memory Extraction Module
 
 **Objective:**
 Identify tthe module used to extract logon passwords from memory
@@ -364,7 +364,7 @@ DeviceProcessEvents
 - **Evidence Collected:**  `sekurlsa::logonpasswords` 
 - **Final Finding:** OS Credential Dumping: LSASS MemorySub-technique rationale:sekurlsa module interacts with Security Support Provider (SSP) data inside LSASS.logonpasswords extracts plaintext credentials, NTLM hashes, Kerberos keys.
 
-## Flag 14 -  Data Staging Archive
+## Flag 14 - Data Staging Archive
 
 **Objective:**
  Identify the compressed archive filename used for data exfiltration
@@ -384,3 +384,120 @@ DeviceFileEvents
 - **Evidence Collected:**  `export-data.zip` 
 - **Final Finding:** Stolen data was compressed into `export-data.zip` within staging folder.
 
+
+## Flag 15 - Exfiltration Channel
+
+**Objective:**
+ Determine the cloud service used to exfiltrate stolen data
+
+**Hypothesis** Attackers compress stolen data for efficient exfiltration. The archive filename often includes dates or descriptive names for the attacker's organisation.
+
+- **KQL Query Used:**
+```
+DeviceNetworkEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where InitiatingProcessAccountName contains "kenji.sato"
+| project Timestamp, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessFolderPath, RemoteIPType, RemoteIP
+```
+<img width="1506" height="432" alt="image" src="https://github.com/user-attachments/assets/a6293442-345c-4c93-a39f-499b39933cfb" />
+
+- **Evidence Collected:**  `discord` 
+- **Final Finding:** Data exfiltrated using `curl.exe` an HTTPS POST to a Discord webhook endpoint
+
+## Flag 16 - Anti-Forensics; Log Tampering
+**Objective:**
+ Determine the first log cleared by the attacker
+
+**Hypothesis** Clearing event logs destroys forensic evidence and impedes investigation efforts. The order of log clearing usually indicates the attacker's priorities and sophistication
+
+- **KQL Query Used:**
+```
+DeviceNetworkEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where InitiatingProcessAccountName contains "kenji.sato"
+| project Timestamp, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessFolderPath, RemoteIPType, RemoteIP
+```
+<img width="1510" height="446" alt="flag 16" src="https://github.com/user-attachments/assets/0ffaed59-953e-4440-95a0-a3470659cea0" />
+
+- **Evidence Collected:**  `Security` 
+- **Final Finding:** Security event log cleared using `wevtutil cl Security`. This is usually the first log attackers target because it holds the most incriminating activity.
+
+## Flag 17 - Persistence Account
+**Objective:**
+ Determine the first log cleared by the attacker
+
+**Hypothesis** Hidden administrator accounts provide alternative access for future operations. These accounts are often configured to avoid appearing in normal user interfaces
+
+- **KQL Query Used:**
+```
+DeviceProcessEvents
+| where DeviceName == "azuki-sl"
+| where AccountName contains "kenji.sato"
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| project Timestamp, ProcessCommandLine, FolderPath, InitiatingProcessAccountName
+| order by Timestamp asc
+```
+<img width="1527" height="237" alt="flag 17" src="https://github.com/user-attachments/assets/ec0abb76-b7b7-4c0d-9be6-7af4f6f9d6ad" />
+
+- **Evidence Collected:**  `support` 
+- **Final Finding:** The attacker created a new local user and added it to the Administrators group to maintain privileged access even if other entry points are removed.
+
+## Flag 18 - Malicious Script
+**Objective:**
+Identify the PowerShell script file used to automate the attack chain
+
+**Hypothesis** Attackers often use scripting languages to automate their attack chain. Identifying the initial attack script will reveal the entry point and automation method used in the compromise.
+
+- **KQL Query Used:**
+```
+DeviceFileEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where InitiatingProcessAccountName contains "kenji.sato"
+| project Timestamp, FileName, FolderPath, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessFolderPath
+```
+<img width="1552" height="505" alt="image" src="https://github.com/user-attachments/assets/102cac9a-9500-4853-ae06-f51cf3410812" />
+
+- **Evidence Collected:**  `wupdate.ps1` 
+- **Final Finding:** The attacker used wupdate.ps1 as a staged PowerShell script that automates key steps in their attack chain, such as pulling payloads, running commands, and modifying system settings without user interaction.
+By disguising it as a harmless update script, they run it quietly to maintain control, deploy persistence, and prepare the system for later actions like data staging or exfiltration.
+
+## Flag 19 - Secondary Target
+**Objective:**
+Identify the PowerShell script file used to automate the attack chain
+
+**Hypothesis** Lateral movement targets are selected based on their access to sensitive data or network privileges. Identifying these targets reveals attacker objectives.
+
+- **KQL Query Used:**
+```
+DeviceNetworkEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where InitiatingProcessAccountName contains "kenji.sato"
+| project Timestamp, RemoteIP, RemoteUrl, RemotePort, RemoteIPType, InitiatingProcessFileName, InitiatingProcessCommandLine
+```
+<img width="1501" height="451" alt="flag 19" src="https://github.com/user-attachments/assets/878e9232-acf2-45d7-a810-fd157425daa0" />
+
+- **Evidence Collected:**  `10.1.0.188 ` 
+- **Final Finding:** Target internal private address used to pivot deeper into the network identified
+
+## Flag 20 - Remote Access Tool
+**Objective:**
+Determine the remote access tool used for lateral movement
+
+**Hypothesis** Built-in remote access tools are preferred for lateral movement as they blend with legitimate administrative activity. This technique is harder to detect than custom tools.
+
+- **KQL Query Used:**
+```
+DeviceNetworkEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where InitiatingProcessAccountName contains "kenji.sato"
+| project Timestamp, RemoteIP, RemoteUrl, RemotePort, RemoteIPType, InitiatingProcessFileName, InitiatingProcessCommandLine
+```
+<img width="1501" height="451" alt="flag 19" src="https://github.com/user-attachments/assets/878e9232-acf2-45d7-a810-fd157425daa0" />
+
+- **Evidence Collected:**  `10.1.0.188 ` 
+- **Final Finding:** Native RDP client `mstsc.exe` used for pivot attempt
