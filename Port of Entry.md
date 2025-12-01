@@ -1,13 +1,13 @@
 #  Port of Entry - Virtual Machine Compromise 
 <img width="740" height="1110" alt="image" src="https://github.com/user-attachments/assets/175e509e-a948-4788-8507-5e7c0d30ce74" />
 
-| **Date of Report** |21st November 2025 |
+| **Date of Report** |21st November 2025|
 |--------------------|--------------------|
 | **Severity Level** | **CRITICAL**       |
 | **Report Status**  | Open               |
 | **Escalated To**   | Joshua Makador – LOG(N) Pacific |
 | **Incident Date**  | 16th November 2025 |
-| **Analyst**        | Adetola K  |
+| **Analyst**        | Adetola Kols  |
 
 
 ## Summary of Events
@@ -29,7 +29,6 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 ---
 
 ## Hunt Scope
-
 - **Lab Environment:** `LOG(N) Pacific - Cyber Range 1` 
 - **Platform:** Microsoft Defender for Endpoint + Azure Sentinel (Log Analytics Workspace)  
 - **Host Monitored:** `azuki-sl` (IT administrator workstation)  
@@ -42,9 +41,9 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 - **Frameworks Applied:** *MITRE ATT&CK*, *NIST 800-61*
 - **Objective:** Identify initial access, reconnaissance activity, defense evasion, credential dumping, persistence mechanisms, lateral movement attempts, and data exfiltration.
 
-📌 Timeline of Events (UTC)
+📌 Timeline of Events (UTC) & MITRE ATTACK
 
-| Time (UTC) | Flag | Category / Stage           | Key Event Details                                                                                      | MITRE Technique(s)                    |
+| Time (UTC) | Flag | Tactic           | Key Event Details / Evidence                                                                                      | MITRE ID                   |
 |-----------|------|-----------------------------|----------------------------------------------------------------------------------------------------------|----------------------------------------|
 |  **Nov 19, 2025 6:36:21 PM**    | 1    | Initial Access              | RDP login to `azuki-sl` using compromised account `kenji.sato`                                          | T1021.001, T1078                       |
 | **Nov 19, 2025 6:36:21 PM**  | 2    | Initial Access              | Valid account leveraged to gain interactive access                                                       | T1078                                  |
@@ -140,7 +139,7 @@ DeviceLogonEvents
 ```
 <img width="1262" height="375" alt="flag 2" src="https://github.com/user-attachments/assets/1d5311b9-553f-493f-8262-06ae650466ef" />
 
-## Flag 3 - Network Reconnaissance
+## Network Reconnaissance
 
 **Objective:**
 Determine the command and argument used to enumerate network neighbours
@@ -162,7 +161,7 @@ DeviceProcessEvents
 - **Evidence Collected:** `"ARP.EXE" -a` in CLI
 - **Final Finding:** `-Arp.exe` is used to check IP addresses of devices the system recently communicated with
 
-## Flag 4 - Malware Staging Directory
+## Malware Staging Directory
 
 **Objective:**
 Determine the PRIMARY staging directory where malware was stored
@@ -183,7 +182,7 @@ DeviceProcessEvents
 - **Evidence Collected:** `C:\ProgramData\WindowsCache` in CLI
 - **Final Finding:** -  The attacker created/used `C:\ProgramData\WindowsCache`; hid it, stored tools and stolen data inside it then zipped and exfiltrated data from this exact directory
 
-## Flag 5 - File Extension Exclusions
+## File Extension Exclusions
 
 **Objective:**
 Identify how many file extensions were excluded from Windows Defender
@@ -206,7 +205,7 @@ DeviceRegistryEvents
 Execute exfiltration binaries without Defender interference.
 
                                                                                                       
-## Flag 6 - Download Utility Abuse
+## Download Utility Abuse
 
 **Objective:**
 Determine the Windows-native binary the attacker abused to download files
@@ -226,7 +225,7 @@ DeviceRegistryEvents
 - **Evidence Collected:** : `C:\Users\KENJI~1.SAT\AppData\Local\Temp` 
 - **Final Finding:** - Temp folder was excluded from Defender scanning
 
-## Flag 7 - Temporary Folder Exclusion
+## Temporary Folder Exclusion
 
 **Objective:**
 Determine the temporary folder path was excluded from Windows Defender scanning
@@ -247,7 +246,7 @@ DeviceProcessEvents
 - **Final Finding:** - `certutil.exe` abused to download malicious files.
 
 
-## Flag 8 - Scheduled Task Name
+## Scheduled Task Name
 
 **Objective:**
 Identify the Windows-native binary the attacker abused to download files
@@ -267,7 +266,7 @@ DeviceProcessEvents
 - **Evidence Collected:**  `Windows Update Check` 
 - **Final Finding:** Persistence established via scheduled task 
 
-## Flag 9 - Scheduled Task Target
+## Scheduled Task Target
 
 **Objective:**
 Identify the executable path configured in the scheduled task
@@ -287,7 +286,7 @@ DeviceProcessEvents
 - **Evidence Collected:**  `C:\ProgramData\WindowsCache\svchost.exe` 
 - **Final Finding:** Task configured to execute malicious file
 
-## Flag 10 - C2 Server Address
+## C2 Server Address
 
 **Objective:**
 Determine the IP address of the command and control server
@@ -306,7 +305,7 @@ DeviceNetworkEvents
 - **Evidence Collected:**  `78.141.196.6` 
 - **Final Finding:** Outbound C2 connection made
 
-## Flag 11 -  C2 Communication Port
+## C2 Communication Port
 
 **Objective:**
 Determine the destination port used for command and control communications
@@ -328,7 +327,7 @@ DeviceNetworkEvents
 -  web traffic to avoid detection/network filtering by blending in with existing traffic.
 
 
-## Flag 12 - Credential Theft Tool
+## Credential Theft Tool
 
 **Objective:**
 Identify the filename of the credential dumping tool
@@ -348,7 +347,7 @@ DeviceFileEvents
 - **Evidence Collected:**  `mm.exe` 
 - **Final Finding:** The attacker downloaded a renamed credential dumper into the staging directory. It executed commands consistent with Mimikatz usage.
 
-## Flag 13 - Credential Access; Memory Extraction Module
+## Credential Access; Memory Extraction Module
 
 **Objective:**
 Identify tthe module used to extract logon passwords from memory
@@ -368,7 +367,7 @@ DeviceProcessEvents
 - **Evidence Collected:**  `sekurlsa::logonpasswords` 
 - **Final Finding:** OS Credential Dumping: LSASS MemorySub-technique rationale:sekurlsa module interacts with Security Support Provider (SSP) data inside LSASS.logonpasswords extracts plaintext credentials, NTLM hashes, Kerberos keys.
 
-## Flag 14 - Data Staging Archive
+## Data Staging Archive
 
 **Objective:**
  Identify the compressed archive filename used for data exfiltration
@@ -389,7 +388,7 @@ DeviceFileEvents
 - **Final Finding:** Stolen data was compressed into `export-data.zip` within staging folder.
 
 
-## Flag 15 - Exfiltration Channel
+##  Exfiltration Channel
 
 **Objective:**
  Determine the cloud service used to exfiltrate stolen data
@@ -409,7 +408,7 @@ DeviceNetworkEvents
 - **Evidence Collected:**  `discord` 
 - **Final Finding:** Data exfiltrated using `curl.exe` an HTTPS POST to a Discord webhook endpoint
 
-## Flag 16 - Anti-Forensics; Log Tampering
+## Anti-Forensics; Log Tampering
 **Objective:**
  Determine the first log cleared by the attacker
 
@@ -428,7 +427,7 @@ DeviceNetworkEvents
 - **Evidence Collected:**  `Security` 
 - **Final Finding:** Security event log cleared using `wevtutil cl Security`. This is usually the first log attackers target because it holds the most incriminating activity.
 
-## Flag 17 - Persistence Account
+## Persistence Account
 **Objective:**
  Determine the first log cleared by the attacker
 
@@ -448,7 +447,7 @@ DeviceProcessEvents
 - **Evidence Collected:**  `support` 
 - **Final Finding:** The attacker created a new local user and added it to the Administrators group to maintain privileged access even if other entry points are removed.
 
-## Flag 18 - Malicious Script
+## Malicious Script
 **Objective:**
 Identify the PowerShell script file used to automate the attack chain
 
@@ -468,7 +467,7 @@ DeviceFileEvents
 - **Final Finding:** The attacker used wupdate.ps1 as a staged PowerShell script that automates key steps in their attack chain, such as pulling payloads, running commands, and modifying system settings without user interaction.
 By disguising it as a harmless update script, they run it quietly to maintain control, deploy persistence, and prepare the system for later actions like data staging or exfiltration.
 
-## Flag 19 - Secondary Target
+## Secondary Target
 **Objective:**
 Identify the PowerShell script file used to automate the attack chain
 
@@ -487,7 +486,7 @@ DeviceNetworkEvents
 - **Evidence Collected:**  `10.1.0.188 ` 
 - **Final Finding:** Target internal private address used to pivot deeper into the network identified
 
-## Flag 20 - Remote Access Tool
+## Remote Access Tool
 **Objective:**
 Determine the remote access tool used for lateral movement
 
