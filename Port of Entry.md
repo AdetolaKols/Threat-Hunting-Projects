@@ -117,7 +117,7 @@ DeviceLogonEvents
 ```
 <img width="1107" height="507" alt="image" src="https://github.com/user-attachments/assets/c7a813e7-23a3-4ed1-a2ea-a2a74ebdca6c" />
 
-## Flag 2 - Compromised User Account
+## Compromised User Account
 
 **Objective:**
 Identify which credentials were compromised and determine the scope of unauthorised access.
