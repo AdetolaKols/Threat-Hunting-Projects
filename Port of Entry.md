@@ -1,4 +1,4 @@
-#  Port of Entry - VM Compromise 
+#  Port of Entry - Virtual Machine Compromise 
 <img width="740" height="1110" alt="image" src="https://github.com/user-attachments/assets/175e509e-a948-4788-8507-5e7c0d30ce74" />
 
 ## Executive Summary
@@ -62,14 +62,9 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 
 ### **Long-Term (1–3 Months)**
 
-- Remove public RDP exposure; enforce MFA and protected admin access.
-- Move admin activities onto Privileged Access Workstations (PAWs).
-- Begin transition to password-less or FIDO2 for privileged users.
-- Enable LSASS protection, Credential Guard, and strict Defender Tamper Protection.
-- Apply network segmentation for admin hosts and sensitive systems.
-- Deploy full EDR telemetry: PowerShell, AMSI, script block logging.
-- Implement egress filtering to block Discord, Pastebin, file-sharing platforms.
-- Centralize logs in a tamper-proof SIEM with long-term retention.
+- Deploy MFA everywhere, remove public RDP, implement EDR full telemetry.
+- Introduce Defender Tamper Protection and Attack Surface Reduction (ASR) rules.
+- Begin SIEM log centralisation with immutable storage.
 - Apply least-privilege access for sensitive data and restrict ZIP/archiving in ProgramData/Temp.
 - Roll out security awareness for admins on script abuse, LOLBins, and suspicious RDP use.
 
@@ -77,14 +72,12 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 
 ### **Detection Engineering (Ongoing)**
 
-- Detect misuse of LOLBins (certutil, curl, cmdkey, schtasks).
-- Alert on Defender exclusion changes (file, folder, process).
-- Monitor for PowerShell with `-ExecutionPolicy Bypass` and unsigned script execution.
+- Deploy full Privileged Access Management (PAM).
+-  Perform regular red/purple-team exercises to test resilience.
+- Move toward password-less authentication for all admins.
 - Refine monitoring rules to alert on creation of hidden ProgramData folders, Temp-based execution, new local admin accounts or priviledge changes
-- Flag ZIP/archiving events in non-standard directories.
 - Alert on outbound HTTPS uploads to non-business services.
-- Watch for attempts to clear logs (e.g., `wevtutil cl Security`).
-- Perform regular red/purple-team exercises to test resilience.
+
 ---
 
 ## 💡 Lessons Learned
