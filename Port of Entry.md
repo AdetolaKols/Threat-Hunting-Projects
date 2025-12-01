@@ -1,7 +1,16 @@
 #  Port of Entry - Virtual Machine Compromise 
 <img width="740" height="1110" alt="image" src="https://github.com/user-attachments/assets/175e509e-a948-4788-8507-5e7c0d30ce74" />
 
-## Executive Summary
+| **Date of Report** |21st November 2025 |
+|--------------------|--------------------|
+| **Severity Level** | **CRITICAL**       |
+| **Report Status**  | Open               |
+| **Escalated To**   | Joshua Makador – LOG(N) Pacific |
+| **Incident Date**  | 16th November 2025 |
+| **Analyst**        | Adetola K  |
+
+
+## Summary of Events
 
 This investigation confirmed that the compromise of the **AZUKI-SL** administrator workstation on *19 November 2025* was not routine activity, but a coordinated intrusion that leveraged valid credentials, trusted Windows components, and staged automation.
 
@@ -88,7 +97,9 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 - Scheduled tasks and local accounts remain high-value persistence vectors.
 - Strong logging, segmentation, and privileged identity controls reduce long-term risk.
 
-## Flag 1 - Starting Point – Initial Access
+## IOCs
+
+##  Starting Point – Initial Access
 
 **Objective:**
 Determine the origin  and source IP address of the Remote Desktop Protocol connection
