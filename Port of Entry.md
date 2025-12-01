@@ -80,14 +80,11 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 - Detect misuse of LOLBins (certutil, curl, cmdkey, schtasks).
 - Alert on Defender exclusion changes (file, folder, process).
 - Monitor for PowerShell with `-ExecutionPolicy Bypass` and unsigned script execution.
-- Detect creation of hidden ProgramData folders and Temp-based execution.
+- Refine monitoring rules to alert on creation of hidden ProgramData folders, Temp-based execution, new local admin accounts or priviledge changes
 - Flag ZIP/archiving events in non-standard directories.
-- Monitor for new local admin accounts, scheduled tasks, or privilege changes.
 - Alert on outbound HTTPS uploads to non-business services.
 - Watch for attempts to clear logs (e.g., `wevtutil cl Security`).
-- Continuously refine detection rules based on hunting observations.
 - Perform regular red/purple-team exercises to test resilience.
-
 ---
 
 ## 💡 Lessons Learned
@@ -205,12 +202,12 @@ DeviceRegistryEvents
 Execute exfiltration binaries without Defender interference.
 
                                                                                                       
-## Flag 6 - Temporary Folder Exclusion
+## Flag 6 - Download Utility Abuse
 
 **Objective:**
-Determine the temporary folder path was excluded from Windows Defender scanning
+Determine the Windows-native binary the attacker abused to download files
 
-**Hypothesis** - Attackers add folder path exclusions to Windows Defender to prevent scanning of directories used for downloading and executing malicious tools.
+**Hypothesis** - Legitimate system utilities are often weaponized to download malware while evading detection. 
 
 - **KQL Query Used:**
 ```
@@ -222,9 +219,29 @@ DeviceRegistryEvents
 ```
 <img width="1845" height="462" alt="Flag 6" src="https://github.com/user-attachments/assets/40b602c3-9bda-4d0a-8e46-4ef7c041435b" />
 
-
 - **Evidence Collected:** : `C:\Users\KENJI~1.SAT\AppData\Local\Temp` 
-- **Final Finding:** -  Temp folder excluded from Defender scanning
+- **Final Finding:** - Temp folder excluded from Defender scanning
+
+## Flag 7 - Temporary Folder Exclusion
+
+**Objective:**
+Determine the temporary folder path was excluded from Windows Defender scanning
+
+**Hypothesis** - Attackers add folder path exclusions to Windows Defender to prevent scanning of directories used for downloading and executing malicious tools.
+
+- **KQL Query Used:**
+```
+DeviceProcessEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where AccountName contains "kenji.sato"
+| project Timestamp, ProcessCommandLine, ActionType, AccountName, FileName
+```
+<img width="1632" height="485" alt="Flag 7" src="https://github.com/user-attachments/assets/2af1ac61-f2e7-4ad2-82a7-52eddfbeeaa6" />
+
+- **Evidence Collected:** : `certutil.exe` 
+- **Final Finding:** - `certutil.exe` abused to download malicious files.
+
 
 ## Flag 8 - Scheduled Task Name
 
@@ -261,7 +278,7 @@ DeviceProcessEvents
 | where AccountName contains "kenji.sato"
 | project Timestamp, ProcessCommandLine, ActionType, AccountName, FileName
 ```
-<img width="1508" height="466" alt="Flag 8" src="https://github.com/user-attachments/assets/ace7b5b6-5745-4e35-a6d8-3bfc151e8d1a" />
+<img width="1555" height="512" alt="flag 9" src="https://github.com/user-attachments/assets/9f7ee038-06c2-43ef-8259-a37b84d3ffb3" />
 
 - **Evidence Collected:**  `C:\ProgramData\WindowsCache\svchost.exe` 
 - **Final Finding:** Task configured to execute malicious file
@@ -346,3 +363,24 @@ DeviceProcessEvents
 
 - **Evidence Collected:**  `sekurlsa::logonpasswords` 
 - **Final Finding:** OS Credential Dumping: LSASS MemorySub-technique rationale:sekurlsa module interacts with Security Support Provider (SSP) data inside LSASS.logonpasswords extracts plaintext credentials, NTLM hashes, Kerberos keys.
+
+## Flag 14 -  Data Staging Archive
+
+**Objective:**
+ Identify the compressed archive filename used for data exfiltration
+
+**Hypothesis** Attackers compress stolen data for efficient exfiltration. The archive filename often includes dates or descriptive names for the attacker's organisation.
+
+- **KQL Query Used:**
+```
+DeviceFileEvents
+| where Timestamp between (datetime(2025-11-19) .. datetime(2025-11-20))
+| where DeviceName == "azuki-sl" 
+| where InitiatingProcessAccountName contains "kenji.sato"
+| project Timestamp, FileName, FolderPath, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessFolderPath
+```
+<img width="1517" height="441" alt="image" src="https://github.com/user-attachments/assets/587e52e6-9c8b-41fb-ba2f-9d6654491308" />
+
+- **Evidence Collected:**  `export-data.zip` 
+- **Final Finding:** Stolen data was compressed into `export-data.zip` within staging folder.
+
