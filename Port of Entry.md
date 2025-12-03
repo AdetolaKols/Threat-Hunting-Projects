@@ -66,7 +66,7 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 | **Nov 19, 2025 7:10:39 PM**    | 19   | Lateral Movement            | Attacker targets RDP host **10.1.0.188** using stored credentials                                       | T1550.002, T1021.001                   |
 | **Nov 19, 2025 7:10:39 PM**   | 20   | Lateral Movement            | Built-in RDP client (`mstsc.exe`) used for pivot attempt                                                 | T1021.001                              |
 
-## 🔧 Remediation & Hardening Plan
+## Remediation & Hardening Plan
 
 ### **Long-Term (1–3 Months)**
 
@@ -76,8 +76,6 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 - Apply least-privilege access for sensitive data and restrict ZIP/archiving in ProgramData/Temp.
 - Roll out security awareness for admins on script abuse, LOLBins, and suspicious RDP use.
 
----
-
 ### **Detection Engineering (Ongoing)**
 
 - Deploy full Privileged Access Management (PAM).
@@ -86,9 +84,7 @@ This activity demonstrates a deliberate compromise aimed at harvesting credentia
 - Refine monitoring rules to alert on creation of hidden ProgramData folders, Temp-based execution, new local admin accounts or priviledge changes
 - Alert on outbound HTTPS uploads to non-business services.
 
----
-
-## 💡 Lessons Learned
+##  Lessons Learned
 
 - RDP without MFA exposes organizations to high-risk credential compromise.
 - LOLBins and renamed binaries make detection harder; deep telemetry is essential.
