@@ -500,7 +500,7 @@ DeviceNetworkEvents
 | where InitiatingProcessAccountName contains "kenji.sato"
 | project Timestamp, RemoteIP, RemoteUrl, RemotePort, RemoteIPType, InitiatingProcessFileName, InitiatingProcessCommandLine
 ```
-<img width="1501" height="451" alt="flag 19" src="https://github.com/user-attachments/assets/878e9232-acf2-45d7-a810-fd157425daa0" />
+<img width="1422" height="357" alt="image" src="https://github.com/user-attachments/assets/893d5f7f-350d-4683-9222-00840442757d" />
 
-- **Evidence Collected:**  `10.1.0.188 ` 
+- **Evidence Collected:**  `mstsc.exe` 
 - **Final Finding:** Native RDP client `mstsc.exe` used for pivot attempt
